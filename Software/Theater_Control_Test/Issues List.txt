@@ -1,0 +1,9 @@
+Controls work
+Display works
+Servos work
+Motors work except for motor 1 forward rotation.
+
+Issues:
+Ordered displays have reverse GND/VCC
+Need header pins for front (amazon preferred)
+Motors work except for motor 1 forward rotation.

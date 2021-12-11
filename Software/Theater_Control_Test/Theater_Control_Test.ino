@@ -1,8 +1,8 @@
 
 //This is a test program for rev 0.1.1 of Kent State's
-//ATR Lab Theater Project Theater Control Board. Runs a basic 
-//test of all functions of the system (motors, servos, 
-//joystick,buttons, etc) via a serial com port.
+//ATR Lab Theater Project Theater Control Board. Runs a basic
+//test of all functions of the system (motors, servos,
+//joystick,buttons, etc) via a Serial com port.
 //For Arduino Mega
 
 //Dan Maher, ATR Lab Research Assistant
@@ -10,7 +10,6 @@
 
 #include <Wire.h>
 #include <Servo.h>
-#include "A4988.h"
 #include <Adafruit_SSD1306.h> //Display
 #include "pinmap.h" //Reference for pin macros
 
@@ -18,10 +17,12 @@
 //Globals
 ///////////////////////
 //These are just the number of selections to pass to ProcessSelection
-static int selectionQuantityMain = 4;
-static int selectionQuantityServo = 7;
-static int selectionQuantityStepper = 5;
-static int selectionQuantityGear = 3;
+static int selectionQuantityMain = 5;
+static int selectionQuantityServo = 6;
+static int selectionQuantityStepper = 4;
+static int selectionQuantityGear = 2;
+static int selectionQuantityIOMenu = 2;
+static int selectionQuantityIO = 10;
 
 int menuSelection = -1; //Holds the current menu selection. Setup so that '0' is quit
 
@@ -34,10 +35,10 @@ Servo servo5;
 Servo servo6;
 
 //Steppers
-A4988 stepper1(200, STEPPER_MOTOR_1_STEP, STEPPER_MOTOR_1_DIR, 34, 35, 36);
-A4988 stepper2(200, STEPPER_MOTOR_2_STEP, STEPPER_MOTOR_2_DIR, 34, 35, 36);
-A4988 stepper3(200, STEPPER_MOTOR_3_STEP, STEPPER_MOTOR_3_DIR, 34, 35, 36);
-A4988 stepper4(200, STEPPER_MOTOR_4_STEP, STEPPER_MOTOR_4_DIR, 34, 35, 36);
+
+//IO Selection Bank/Pin
+int selectedBank;
+int selectedPin;
 
 //I2C Display
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
@@ -48,40 +49,41 @@ void setup() {
   InitializeGearMotors();
   InitializeControls();
   InitializeDisplay();
+  InitializeIO();
   InitializeSerial();
 }
 
 void loop() {
-  while(menuSelection < 1){
+  while (menuSelection < 1) {
     DisplayMenu();
     menuSelection = ProcessSelection(selectionQuantityMain);
   }
 
   //Main Menu Selection
-  switch(menuSelection){
+  switch (menuSelection) {
     case 1: //Servo Menu selected
-      while(1){
+      while (1) {
         DisplayServoMenu();
         menuSelection = ProcessSelection(selectionQuantityServo);
-        if(menuSelection == 0)
+        if (menuSelection == 0)
           break;
         TestServo(menuSelection);
       }
       break;
     case 2:
-      while(1){
+      while (1) {
         DisplayGearMenu();
         menuSelection = ProcessSelection(selectionQuantityGear);
-        if(menuSelection == 0)
+        if (menuSelection == 0)
           break;
         TestGearMotor(menuSelection);
       }
       break;
     case 3:
-      while(1){
+      while (1) {
         DisplayStepperMenu();
         menuSelection = ProcessSelection(selectionQuantityStepper);
-        if(menuSelection == 0)
+        if (menuSelection == 0)
           break;
         TestStepperMotor(menuSelection);
       }
@@ -89,21 +91,40 @@ void loop() {
     case 4:
       TestControls();
       break;
+    case 5:
+      do {
+        DisplayIOMenu1();
+        selectedBank = ProcessSelection(selectionQuantityIOMenu);
+        if (selectedBank == 0)
+          break;
+        else if (selectedBank == -1)
+          continue;
+        do {
+          DisplayIOMenu2();
+          selectedPin = ProcessSelection(selectionQuantityIO);
+          if (selectedPin == 0)
+            break;
+          else if (selectedPin == -1)
+            continue;
+          TestIO(selectedBank, selectedPin);
+        } while (selectedPin != 0);
+      } while (selectedBank != 0);
   }
 
   menuSelection = -1;
 }
 
-void DisplayMenu(){
+void DisplayMenu() {
   Serial.print("Please Select Option (1-5");
   Serial.println("):\n----------------------------");
   Serial.println("1.  Servo Tests");
   Serial.println("2.  Gear Motor Tests");
   Serial.println("3.  Stepper Motor Tests");
   Serial.println("4.  Test Controls");
+  Serial.println("5.  I/O Banks");
   Serial.println();
 }
-void DisplayServoMenu(){
+void DisplayServoMenu() {
   Serial.print("Please Select Option (0-6");
   Serial.println("):\n----------------------------");
   Serial.println("0.  Previous Menu");
@@ -115,7 +136,7 @@ void DisplayServoMenu(){
   Serial.println("6.  Test Servo 6");
   Serial.println();
 }
-void DisplayGearMenu(){
+void DisplayGearMenu() {
   Serial.print("Please Select Option (0-2");
   Serial.println("):\n----------------------------");
   Serial.println("0.  Previous Menu");
@@ -123,7 +144,7 @@ void DisplayGearMenu(){
   Serial.println("2.  Test Gear Motor 2");
   Serial.println();
 }
-void DisplayStepperMenu(){
+void DisplayStepperMenu() {
   Serial.print("Please Select Option (0-4");
   Serial.println("):\n----------------------------");
   Serial.println("0.  Previous Menu");
@@ -134,183 +155,141 @@ void DisplayStepperMenu(){
   Serial.println();
 }
 
-int ProcessSelection(int selectionQuantity){
-  while(!Serial.available()){
-    
+void DisplayIOMenu1() {
+  Serial.print("Please Select Option (0-2");
+  Serial.println("):\n----------------------------");
+  Serial.println("0.  Previous Menu");
+  Serial.println("1.  Bank 1");
+  Serial.println("2.  Bank 2");
+  Serial.println();
+}
+void DisplayIOMenu2() {
+  Serial.print("Please Select Option (0-10");
+  Serial.println("):\n----------------------------");
+  Serial.println("0.     Previous Menu");
+  Serial.println("1-10.  I/O port");
+  Serial.println();
+}
+
+int ProcessSelection(int selectionQuantity) {
+  while (!Serial.available()) {
+
   }
-  
+
   int selection = Serial.parseInt();
-  if(selection < 0 || selection > selectionQuantity){
+  if (selection < 0 || selection > selectionQuantity) {
     Serial.print("Invalid selection! Enter a number between 0 and ");
     Serial.println(selectionQuantity);
     return -1;
-  }else{
+  } else {
     return selection;
   }
 }
 
-void TestServo(int servo){
+void TestServo(int servo) {
   Serial.print("Testing Servo ");
   Serial.print(servo);
   Serial.println("...\n");
 
-  switch(servo){
+  Servo activeServo;
+  switch (servo) {
     case 1:
-      servo1.write(180);
-      delay(2000);
-      servo1.write(90);
+      activeServo = servo1;
       break;
     case 2:
-      servo2.write(180);
-      delay(2000);
-      servo2.write(90);
+      activeServo = servo2;
       break;
     case 3:
-      servo3.write(180);
-      delay(2000);
-      servo3.write(90);
+      activeServo = servo3;
       break;
     case 4:
-      servo4.write(180);
-      delay(2000);
-      servo4.write(90);
+      activeServo = servo4;
       break;
     case 5:
-      servo5.write(180);
-      delay(2000);
-      servo5.write(90);
+      activeServo = servo5;
       break;
     case 6:
-      servo6.write(180);
-      delay(2000);
-      servo6.write(90);
+      activeServo = servo6;
       break;
   }
+
+  activeServo.write(180);
+  delay(2000);
+  activeServo.write(90);
+
   Serial.println("\nServo Test Complete!\n");
 }
 
-void TestGearMotor(int motor){
+void TestGearMotor(int motor) {
   Serial.print("Testing Gear Motor ");
   Serial.print(motor);
   Serial.println("...\n");
-  
-  switch(motor){
+
+  int direction;
+  int speed;
+
+  switch (motor) {
     case 1:
-      Serial.println("Configuring Gear Motor 1 for Forward Rotation...");
-      digitalWrite(GEAR_MOTOR_1_DIR, HIGH);
-      delay(100);
-      Serial.println("Rotating Gear Motor 1 Forward...");
-      analogWrite(GEAR_MOTOR_1_SPEED, 255);
-      delay(4000);
-      Serial.println("Braking Gear Motor 1...");
-      analogWrite(GEAR_MOTOR_1_SPEED, 0);
-      delay(100);
-      Serial.println("Configuring Gear Motor 1 for Reverse Rotation...");
-      digitalWrite(GEAR_MOTOR_1_DIR, LOW);
-      delay(100);
-      Serial.println("Rotating Gear Motor 1 in Reverse...");
-      analogWrite(GEAR_MOTOR_1_SPEED, 255);
-      delay(4000);
-      Serial.println("Braking Gear Motor 1...");
-      analogWrite(GEAR_MOTOR_1_SPEED, 0);
-    /*
-      Serial.println("Configuring Motor A for Forward Rotation...");
-      digitalWrite(GEAR_MOTOR_1_DIR, HIGH);
-      delay(100);
-
-      Serial.println("Increasing speed on Motor A...");
-      for (int i = 0; i < 256; i++){
-        analogWrite(GEAR_MOTOR_1_SPEED, i);
-        delay(50);
-      }
-      Serial.println("Motor A at Max Speed...");
-      delay(2000);
-      Serial.println("Braking Motor A...");
-      analogWrite(GEAR_MOTOR_1_SPEED, 0);
-      delay(100);
-
-      Serial.println("Configuring Motor A for Reverse Rotation...");
-      digitalWrite(GEAR_MOTOR_1_DIR, LOW);
-      delay(100);
-
-      Serial.println("Increasing speed on Motor A...");
-      for (int i = 0; i < 256; i++){
-        analogWrite(GEAR_MOTOR_1_SPEED, i);
-        delay(50);
-      }
-      Serial.println("Motor A at Max Speed...");
-      delay(2000);
-      Serial.println("Braking Motor A...\n");
-      analogWrite(GEAR_MOTOR_1_SPEED, 0);
-      delay(100);
-      */
+      direction = GEAR_MOTOR_1_DIR;
+      speed = GEAR_MOTOR_1_SPEED;
       break;
     case 2:
-      Serial.println("Configuring Motor A for Forward Rotation...");
-      digitalWrite(GEAR_MOTOR_2_DIR, HIGH);
-      delay(100);
-
-      Serial.println("Increasing speed on Motor A...");
-      for (int i = 0; i < 256; i++){
-        analogWrite(GEAR_MOTOR_2_SPEED, i);
-        delay(50);
-      }
-      Serial.println("Motor A at Max Speed...");
-      delay(2000);
-      Serial.println("Braking Motor A...");
-      analogWrite(GEAR_MOTOR_2_SPEED, 0);
-      delay(100);
-
-      Serial.println("Configuring Motor A for Reverse Rotation...");
-      digitalWrite(GEAR_MOTOR_2_DIR, LOW);
-      delay(100);
-
-      Serial.println("Increasing speed on Motor A...");
-      for (int i = 0; i < 256; i++){
-        analogWrite(GEAR_MOTOR_2_SPEED, i);
-        delay(50);
-      }
-      Serial.println("Motor A at Max Speed...");
-      delay(2000);
-      Serial.println("Braking Motor A...\n");
-      analogWrite(GEAR_MOTOR_2_SPEED, 0);
-      delay(100);
+      direction = GEAR_MOTOR_2_DIR;
+      speed = GEAR_MOTOR_2_SPEED;
       break;
   }
+
+  Serial.println("Configuring Gear Motor 1 for Forward Rotation...");
+  digitalWrite(direction, HIGH);
+  delay(100);
+  Serial.println("Rotating Gear Motor 1 Forward...");
+  analogWrite(speed, 255);
+  delay(4000);
+  Serial.println("Braking Gear Motor 1...");
+  analogWrite(speed, 0);
+  delay(100);
+  Serial.println("Configuring Gear Motor 1 for Reverse Rotation...");
+  digitalWrite(direction, LOW);
+  delay(100);
+  Serial.println("Rotating Gear Motor 1 in Reverse...");
+  analogWrite(speed, 255);
+  delay(4000);
+  Serial.println("Braking Gear Motor 1...");
+  analogWrite(speed, 0);
 
   Serial.println("\nMotor Test Complete!\n");
 }
 
-void TestStepperMotor(int motor){
+void TestStepperMotor(int motor) {
   Serial.print("Testing Stepper Motor ");
   Serial.print(motor);
   Serial.println("...\n");
 
-  switch(motor){
+  int direction;
+  int step;
+
+  switch (motor) {
     case 1:
-      stepper1.begin(1, 1);
-      stepper1.rotate(360);
+      direction = STEPPER_MOTOR_1_DIR;
+      step = STEPPER_MOTOR_1_STEP;
       break;
     case 2:
-      stepper2.begin(1, 1);
-      stepper2.rotate(360);
-      break;
-    case 3:
-      stepper3.begin(1, 1);
-      stepper3.rotate(360);
-      break;
-    case 4:
-      stepper4.begin(1, 1);
-      stepper4.rotate(360);
+      direction = STEPPER_MOTOR_2_DIR;
+      step = STEPPER_MOTOR_2_STEP;
       break;
   }
+
+  digitalWrite(direction, HIGH);
+  analogWrite(step, 120);
+  delay(4000);
+  analogWrite(step, 0);
 
   Serial.println("\nStepper Motor Test Complete!\n");
 }
 
-void TestControls(){
+void TestControls() {
   Serial.println("Testing Controls, Enter 'q' to Quit...\n");
-   while(Serial.read() != 'q'){
+  while (Serial.read() != 'q') {
     Serial.print("X: ");
     Serial.print(analogRead(JOYSTICK_X));
     Serial.print("  Y: ");
@@ -332,31 +311,119 @@ void TestControls(){
     Serial.print("  SW7: ");
     Serial.println(digitalRead(SW7));
     delay(500);
-   }
+  }
 
-   Serial.println("\nControls Test Complete!\n");
+  Serial.println("\nControls Test Complete!\n");
+}
+
+void TestIO(int bank, int pin) {
+  Serial.print("Flashing bank ");
+  Serial.print(bank);
+  Serial.print(" pin ");
+  Serial.print(pin);
+  Serial.println("...\n");
+
+  switch (bank) {
+    case 1:
+      switch (pin) {
+        case 1:
+          pin = BANK_1_PIN_1;
+          break;
+        case 2:
+          pin = BANK_1_PIN_2;
+          break;
+        case 3:
+          pin = BANK_1_PIN_3;
+          break;
+        case 4:
+          pin = BANK_1_PIN_4;
+          break;
+        case 5:
+          pin = BANK_1_PIN_5;
+          break;
+        case 6:
+          pin = BANK_1_PIN_6;
+          break;
+        case 7:
+          pin = BANK_1_PIN_7;
+          break;
+        case 8:
+          pin = BANK_1_PIN_8;
+          break;
+        case 9:
+          pin = BANK_1_PIN_9;
+          break;
+        case 10:
+          pin = BANK_1_PIN_10;
+          break;
+      }
+      break;
+    case 2:
+      switch (pin) {
+        case 1:
+          pin = BANK_2_PIN_1;
+          break;
+        case 2:
+          pin = BANK_2_PIN_2;
+          break;
+        case 3:
+          pin = BANK_2_PIN_3;
+          break;
+        case 4:
+          pin = BANK_2_PIN_4;
+          break;
+        case 5:
+          pin = BANK_2_PIN_5;
+          break;
+        case 6:
+          pin = BANK_2_PIN_6;
+          break;
+        case 7:
+          pin = BANK_2_PIN_7;
+          break;
+        case 8:
+          pin = BANK_2_PIN_8;
+          break;
+        case 9:
+          pin = BANK_2_PIN_9;
+          break;
+        case 10:
+          pin = BANK_2_PIN_10;
+          break;
+      }
+      break;
+  }
+
+  for (int x = 0; x < 4; x++) {
+    digitalWrite(pin, HIGH);
+    delay(100);
+    digitalWrite(pin, LOW);
+    delay(100);
+  }
+
+  Serial.println("\nI/O Test Complete!\n");
 }
 
 
-void TestEncoders(){
-  Serial.println("Testing Encoders...\n");  
+void TestEncoders() {
+  Serial.println("Testing Encoders...\n");
   /*
-  
-  Serial.println("Configuring Motors for Forward Rotation...");
-  digitalWrite(motorForwardPin_A, HIGH);
-  digitalWrite(motorReversePin_A, LOW);
-  digitalWrite(motorForwardPin_B, HIGH);
-  digitalWrite(motorReversePin_B, LOW);
-  delay(100);
 
-  Serial.println("Rotating Motors at 50% speed");
-  analogWrite(motorSpeedPin_A, 128);
-  analogWrite(motorSpeedPin_B, 128);
-  delay(100);
+    Serial.println("Configuring Motors for Forward Rotation...");
+    digitalWrite(motorForwardPin_A, HIGH);
+    digitalWrite(motorReversePin_A, LOW);
+    digitalWrite(motorForwardPin_B, HIGH);
+    digitalWrite(motorReversePin_B, LOW);
+    delay(100);
 
-  Serial.println("Reading Encoder Outputs, enter 'q' to Quit\n");
+    Serial.println("Rotating Motors at 50% speed");
+    analogWrite(motorSpeedPin_A, 128);
+    analogWrite(motorSpeedPin_B, 128);
+    delay(100);
 
-  while(Serial.read() != 'q'){
+    Serial.println("Reading Encoder Outputs, enter 'q' to Quit\n");
+
+    while(Serial.read() != 'q'){
     Serial.print("\nEncoder A, Output 1: ");
     Serial.println(digitalRead(motorEncoderOutput1_A));
     Serial.print("Encoder A, Output 2: ");
@@ -366,35 +433,35 @@ void TestEncoders(){
     Serial.print("Encoder B, Output 2: ");
     Serial.println(digitalRead(motorEncoderOutput2_B));
     delay(200);
-  }
+    }
 
-  Serial.println("Braking Motors...");
-  digitalWrite(motorForwardPin_A, LOW);
-  digitalWrite(motorReversePin_A, LOW);
-  analogWrite(motorSpeedPin_A, 0);
-  digitalWrite(motorForwardPin_B, LOW);
-  digitalWrite(motorReversePin_B, LOW);
-  analogWrite(motorSpeedPin_B, 0);
+    Serial.println("Braking Motors...");
+    digitalWrite(motorForwardPin_A, LOW);
+    digitalWrite(motorReversePin_A, LOW);
+    analogWrite(motorSpeedPin_A, 0);
+    digitalWrite(motorForwardPin_B, LOW);
+    digitalWrite(motorReversePin_B, LOW);
+    analogWrite(motorSpeedPin_B, 0);
   */
-  Serial.println("\nEncoder Test Complete!\n");  
-  
+  Serial.println("\nEncoder Test Complete!\n");
+
 }
 
-void InitializeStepperMotors(){
+void InitializeStepperMotors() {
   /*
-  stepper1 = Stepper(1, STEPPER_MOTOR_1_STEP, STEPPER_MOTOR_1_DIR);
-  stepper1.setMaxSpeed(1000);
-  stepper2 = AccelStepper(1, STEPPER_MOTOR_2_STEP, STEPPER_MOTOR_2_DIR);
-  stepper2.setMaxSpeed(1000);
-  stepper3 = AccelStepper(1, STEPPER_MOTOR_3_STEP, STEPPER_MOTOR_3_DIR);
-  stepper3.setMaxSpeed(1000);
-  stepper4 = AccelStepper(1, STEPPER_MOTOR_4_STEP, STEPPER_MOTOR_4_DIR);
-  stepper4.setMaxSpeed(1000);
+    stepper1 = Stepper(1, STEPPER_MOTOR_1_STEP, STEPPER_MOTOR_1_DIR);
+    stepper1.setMaxSpeed(1000);
+    stepper2 = AccelStepper(1, STEPPER_MOTOR_2_STEP, STEPPER_MOTOR_2_DIR);
+    stepper2.setMaxSpeed(1000);
+    stepper3 = AccelStepper(1, STEPPER_MOTOR_3_STEP, STEPPER_MOTOR_3_DIR);
+    stepper3.setMaxSpeed(1000);
+    stepper4 = AccelStepper(1, STEPPER_MOTOR_4_STEP, STEPPER_MOTOR_4_DIR);
+    stepper4.setMaxSpeed(1000);
   */
 }
 
 
-void InitializeServos(){
+void InitializeServos() {
   //Servo initialization
   servo1.attach(SERVO_1);
   servo2.attach(SERVO_2);
@@ -404,14 +471,14 @@ void InitializeServos(){
   servo6.attach(SERVO_6);
 }
 
-void InitializeGearMotors(){
+void InitializeGearMotors() {
   pinMode(GEAR_MOTOR_1_DIR, OUTPUT);
   pinMode(GEAR_MOTOR_1_SPEED, OUTPUT);
   pinMode(GEAR_MOTOR_2_DIR, OUTPUT);
   pinMode(GEAR_MOTOR_2_SPEED, OUTPUT);
 }
 
-void InitializeControls(){
+void InitializeControls() {
   //joystick initializtion
   pinMode(JOYSTICK_X, INPUT);
   pinMode(JOYSTICK_Y, INPUT);
@@ -426,26 +493,50 @@ void InitializeControls(){
   pinMode(SW7, INPUT_PULLUP);
 }
 
-void InitializeDisplay(){
+void InitializeDisplay() {
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     Serial.println(F("SSD1306 allocation failed"));
-    for(;;); // Don't proceed, loop forever
+    for (;;); // Don't proceed, loop forever
   }
   display.clearDisplay();
   display.setTextColor(WHITE);
   display.setTextSize(2);
-  display.setCursor(0,0);
+  display.setCursor(0, 0);
   display.println("TEST MODE");
   display.setCursor(0, 16);
   display.setTextSize(1);
-  display.println("Open serial terminal");
+  display.println("Open Serial terminal");
   display.println("to run tests");
   display.display();
-  
+
 }
 
-void InitializeSerial(){
+void InitializeIO() {
+  pinMode(BANK_1_PIN_1, OUTPUT);
+  pinMode(BANK_1_PIN_2, OUTPUT);
+  pinMode(BANK_1_PIN_3, OUTPUT);
+  pinMode(BANK_1_PIN_4, OUTPUT);
+  pinMode(BANK_1_PIN_5, OUTPUT);
+  pinMode(BANK_1_PIN_6, OUTPUT);
+  pinMode(BANK_1_PIN_7, OUTPUT);
+  pinMode(BANK_1_PIN_8, OUTPUT);
+  pinMode(BANK_1_PIN_9, OUTPUT);
+  pinMode(BANK_1_PIN_10, OUTPUT);
+  pinMode(BANK_2_PIN_1, OUTPUT);
+  pinMode(BANK_2_PIN_2, OUTPUT);
+  pinMode(BANK_2_PIN_3, OUTPUT);
+  pinMode(BANK_2_PIN_4, OUTPUT);
+  pinMode(BANK_2_PIN_5, OUTPUT);
+  pinMode(BANK_2_PIN_6, OUTPUT);
+  pinMode(BANK_2_PIN_7, OUTPUT);
+  pinMode(BANK_2_PIN_8, OUTPUT);
+  pinMode(BANK_2_PIN_9, OUTPUT);
+  pinMode(BANK_2_PIN_10, OUTPUT);
+}
+
+
+void InitializeSerial() {
   Serial.begin(9600);
   while (!Serial);
 }

@@ -11,6 +11,7 @@
 #include <Wire.h>
 #include <Servo.h>
 #include <Adafruit_SSD1306.h> //Display
+#include "BasicStepperDriver.h"
 #include "pinmap.h" //Reference for pin macros
 
 ///////////////////////
@@ -35,6 +36,13 @@ Servo servo5;
 Servo servo6;
 
 //Steppers
+#define MOTOR_STEPS 200
+#define MICROSTEPS 1
+#define RPM 120
+BasicStepperDriver stepper1(MOTOR_STEPS, STEPPER_MOTOR_1_DIR, STEPPER_MOTOR_1_STEP);
+BasicStepperDriver stepper2(MOTOR_STEPS, STEPPER_MOTOR_2_DIR, STEPPER_MOTOR_2_STEP);
+BasicStepperDriver stepper3(MOTOR_STEPS, STEPPER_MOTOR_3_DIR, STEPPER_MOTOR_3_STEP);
+BasicStepperDriver stepper4(MOTOR_STEPS, STEPPER_MOTOR_4_DIR, STEPPER_MOTOR_4_STEP);
 
 //IO Selection Bank/Pin
 int selectedBank;
@@ -265,24 +273,28 @@ void TestStepperMotor(int motor) {
   Serial.print(motor);
   Serial.println("...\n");
 
-  int direction;
-  int step;
+  BasicStepperDriver stepper(MOTOR_STEPS, STEPPER_MOTOR_1_DIR, STEPPER_MOTOR_1_STEP);
 
   switch (motor) {
     case 1:
-      direction = STEPPER_MOTOR_1_DIR;
-      step = STEPPER_MOTOR_1_STEP;
+      stepper = stepper1;
       break;
     case 2:
-      direction = STEPPER_MOTOR_2_DIR;
-      step = STEPPER_MOTOR_2_STEP;
+      stepper = stepper2;
+      break;
+    case 3:
+      stepper = stepper3;
+      break;
+    case 4:
+      stepper = stepper4;
       break;
   }
 
-  digitalWrite(direction, HIGH);
-  analogWrite(step, 120);
-  delay(4000);
-  analogWrite(step, 0);
+  for (int x = 0; x < 3; x++) {
+    stepper.rotate(360);
+    stepper.move(-MOTOR_STEPS * MICROSTEPS);
+    delay(100);
+  }
 
   Serial.println("\nStepper Motor Test Complete!\n");
 }
@@ -447,20 +459,6 @@ void TestEncoders() {
 
 }
 
-void InitializeStepperMotors() {
-  /*
-    stepper1 = Stepper(1, STEPPER_MOTOR_1_STEP, STEPPER_MOTOR_1_DIR);
-    stepper1.setMaxSpeed(1000);
-    stepper2 = AccelStepper(1, STEPPER_MOTOR_2_STEP, STEPPER_MOTOR_2_DIR);
-    stepper2.setMaxSpeed(1000);
-    stepper3 = AccelStepper(1, STEPPER_MOTOR_3_STEP, STEPPER_MOTOR_3_DIR);
-    stepper3.setMaxSpeed(1000);
-    stepper4 = AccelStepper(1, STEPPER_MOTOR_4_STEP, STEPPER_MOTOR_4_DIR);
-    stepper4.setMaxSpeed(1000);
-  */
-}
-
-
 void InitializeServos() {
   //Servo initialization
   servo1.attach(SERVO_1);
@@ -476,6 +474,13 @@ void InitializeGearMotors() {
   pinMode(GEAR_MOTOR_1_SPEED, OUTPUT);
   pinMode(GEAR_MOTOR_2_DIR, OUTPUT);
   pinMode(GEAR_MOTOR_2_SPEED, OUTPUT);
+}
+
+void InitializeStepperMotors() {
+  stepper1.begin(RPM, MICROSTEPS);
+  stepper2.begin(RPM, MICROSTEPS);
+  stepper3.begin(RPM, MICROSTEPS);
+  stepper4.begin(RPM, MICROSTEPS);
 }
 
 void InitializeControls() {

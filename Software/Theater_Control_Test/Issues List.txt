@@ -1,9 +1,20 @@
-Controls work
-Display works
-Servos work
-Motors work except for motor 1 forward rotation.
-
 Issues:
 Ordered displays have reverse GND/VCC
 Need header pins for front (amazon preferred)
-Motors work except for motor 1 forward rotation.
+Maybe need heatsinks?
+
+Board A
+------
+Stepper 1 - Working!
+Stepper 2 - B2 bad (works when I press down on the chip pin)
+Stepper 3 - All pins bad
+Stepper 4 - Working!
+Gear motors work except for motor 1 forward rotation
+
+
+Board B
+------
+Stepper 1 - Working!
+Stepper 2 - B2 bad (works when pressing on chip pin)
+Stepper 3 - B1 bad
+Stepper 4 - Working!

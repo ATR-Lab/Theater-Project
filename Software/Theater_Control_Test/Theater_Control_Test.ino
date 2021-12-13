@@ -290,7 +290,7 @@ void TestStepperMotor(int motor) {
       break;
   }
 
-  for (int x = 0; x < 3; x++) {
+  for (int x = 0; x < 5; x++) {
     stepper.rotate(360);
     stepper.move(-MOTOR_STEPS * MICROSTEPS);
     delay(100);

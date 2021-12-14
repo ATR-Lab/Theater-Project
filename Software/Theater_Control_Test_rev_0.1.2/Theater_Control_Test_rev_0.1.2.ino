@@ -39,10 +39,10 @@ Servo servo6;
 #define MOTOR_STEPS 200
 #define MICROSTEPS 1
 #define RPM 120
-BasicStepperDriver stepper1(MOTOR_STEPS, STEPPER_MOTOR_1_DIR, STEPPER_MOTOR_1_STEP);
-BasicStepperDriver stepper2(MOTOR_STEPS, STEPPER_MOTOR_2_DIR, STEPPER_MOTOR_2_STEP);
-BasicStepperDriver stepper3(MOTOR_STEPS, STEPPER_MOTOR_3_DIR, STEPPER_MOTOR_3_STEP);
-BasicStepperDriver stepper4(MOTOR_STEPS, STEPPER_MOTOR_4_DIR, STEPPER_MOTOR_4_STEP);
+BasicStepperDriver stepper1(MOTOR_STEPS, BANK_1_PIN_1, BANK_1_PIN_2); //STEPPER_MOTOR_1_DIR, STEPPER_MOTOR_1_STEP);
+BasicStepperDriver stepper2(MOTOR_STEPS, BANK_1_PIN_3, BANK_1_PIN_4); //STEPPER_MOTOR_2_DIR, STEPPER_MOTOR_2_STEP);
+BasicStepperDriver stepper3(MOTOR_STEPS, BANK_1_PIN_5, BANK_1_PIN_6); //STEPPER_MOTOR_3_DIR, STEPPER_MOTOR_3_STEP);
+BasicStepperDriver stepper4(MOTOR_STEPS, BANK_1_PIN_7, BANK_1_PIN_8); //STEPPER_MOTOR_4_DIR, STEPPER_MOTOR_4_STEP);
 
 //IO Selection Bank/Pin
 int selectedBank;
@@ -273,8 +273,8 @@ void TestStepperMotor(int motor) {
   Serial.print(motor);
   Serial.println("...\n");
 
-  BasicStepperDriver stepper(MOTOR_STEPS, STEPPER_MOTOR_1_DIR, STEPPER_MOTOR_1_STEP);
-
+  BasicStepperDriver stepper(MOTOR_STEPS, STEPPER_MOTOR_1_DIR, STEPPER_MOTOR_1_STEP); //The arguments don't matter here. 
+                                                                                      //I just needed an empty object, and the driver didn't allow for that.
   switch (motor) {
     case 1:
       stepper = stepper1;
@@ -290,10 +290,10 @@ void TestStepperMotor(int motor) {
       break;
   }
 
-  for (int x = 0; x < 5; x++) {
+  for (int x = 0; x < 3; x++) {
     stepper.rotate(360);
     stepper.move(-MOTOR_STEPS * MICROSTEPS);
-    delay(100);
+    delay(50);
   }
 
   Serial.println("\nStepper Motor Test Complete!\n");
